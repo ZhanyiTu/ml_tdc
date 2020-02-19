@@ -1,58 +1,41 @@
-import numpy as np
-class KNNClassfier(object):
-
-    def __init__(self, k=5, distance='euc'):
-        self.k = k
-        self.distance = distance
-        self.x = None
-        self.y = None
-    def fit(self,X, Y):
-        '''
-        X : array-like [n_samples,shape]
-        Y : array-like [n_samples,1]
-        '''        
-        self.x = X
-        self.y = Y
-    def predict(self,X_test):
-        '''
-        X_test : array-like [n_samples,shape]
-        Y_test : array-like [n_samples,1]
-        output : array-like [n_samples,1]
-        '''  
-        output = np.zeros((X_test.shape[0],1))
-        for i in range(X_test.shape[0]):
-            dis = [] 
-            for j in range(self.x.shape[0]):
-                if self.distance == 'euc': # 欧式距离
-                    dis.append(np.linalg.norm(X_test[i]-self.x[j,:]))
-            labels = []
-            index=sorted(range(len(dis)), key=dis.__getitem__)
-            for j in range(self.k):
-                labels.append(self.y[index[j]])
-            counts = []
-            for label in labels:
-                counts.append(labels.count(label))
-            output[i] = labels[np.argmax(counts)]
-        return output
-    def score(self,x,y):
-        pred = self.predict(x)
-        err = 0.0
-        for i in range(x.shape[0]):
-            if pred[i]!=y[i]:
-                err = err+1
-        return 1-float(err/x.shape[0])
+from numpy import *
+import operator
 
 
-if __name__ == '__main__':
-    from sklearn import datasets
-    x = iris.data
-    y = iris.target
-    # x = np.array([[0.5,0.4],[0.1,0.2],[0.7,0.8],[0.2,0.1],[0.4,0.6],[0.9,0.9],[1,1]]).reshape(-1,2)
-    # y = np.array([0,1,0,1,0,1,1]).reshape(-1,1)
-    clf = KNNClassfier(k=1)
-    clf.fit(x,y)
-    print('myknn score:',clf.score(x,y))
-    from sklearn.neighbors import KNeighborsClassifier
-    clf_sklearn = KNeighborsClassifier(n_neighbors=3)
-    clf_sklearn.fit(x,y)
-    print('sklearn score:',clf_sklearn.score(x,y))
+def createDataSet():
+    group = array([[1.0, 1.1], [1.0, 1.0], [0, 0], [0.0, 0.1]])
+    labels = ['A', 'A', 'B', 'B']
+    return group, labels
+
+
+def kNN_Classify(inX, dataSet, labels, k):
+    dataSetSize = dataSet.shape[0]
+    diffMat = tile(inX, (dataSetSize, 1)) - dataSet
+    # 关于tile函数的用法
+    # >>> b=[1,3,5]
+    # >>> tile(b,[2,3])
+    # array([[1, 3, 5, 1, 3, 5, 1, 3, 5],
+    #       [1, 3, 5, 1, 3, 5, 1, 3, 5]])
+    sqDiffMat = diffMat ** 2
+    sqDistances = sum(sqDiffMat, axis=1)
+    distances = sqDistances ** 0.5  # 算距离
+    sortedDistIndicies = argsort(distances)
+    # 关于argsort函数的用法
+    # argsort函数返回的是数组值从小到大的索引值
+    # >>> x = np.array([3, 1, 2])
+    # >>> np.argsort(x)
+    # array([1, 2, 0])
+    classCount = {}  # 定义一个字典
+    #   选择k个最近邻
+    for i in range(k):
+        voteLabel = labels[sortedDistIndicies[i]]
+        #                                                     计算k个最近邻中各类别出现的次数
+        classCount[voteLabel] = classCount.get(voteLabel, 0) + 1
+
+    #                                                         返回出现次数最多的类别标签
+    maxCount = 0
+    for key, value in classCount.items():
+        if value > maxCount:
+            maxCount = value
+            maxIndex = key
+    return maxIndex
